@@ -251,7 +251,6 @@ int main(int argc, char *argv[]){
     #ifndef DEBUG
     init();
     if(argc == 1){
-
         // scan for input
         char buffer[BUFFER_SIZE];
         printf("(krypton) ");
@@ -265,14 +264,18 @@ int main(int argc, char *argv[]){
             scanf("%s", buffer);
         }
     }
-    else if (argc == 2)
+    else if (argc == -2)
     {
         char buffer[BUFFER_SIZE];
         FILE *file = fopen (argv[1], "r");
         if (file != NULL)
         {
             char line [BUFFER_SIZE];
-            while (fgets(line, sizeof line, file) != NULL)
+
+            fscanf(file, "%s", line);
+
+            //while (fgets(line, sizeof line, file) != NULL)
+            while (strcmp(line, CMD_EXIT) != 0)
             {
                 int len = strlen(line);
                 if (len > 0 && line[len-1] == '\n')
@@ -280,10 +283,8 @@ int main(int argc, char *argv[]){
                 if(line[0] == 0)
                     continue;
 
-                sscanf(line, "%s", buffer);
-
-                printf("%s", buffer);
-                parseCommand(buffer);
+                parseCommand(line);
+                fscanf(file, "%s", line);
             }
             fclose (file);
         }

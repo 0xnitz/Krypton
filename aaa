@@ -1,2 +1,4 @@
-print hello world
-print very nice
+print hello
+var=4
+$var
+exit
