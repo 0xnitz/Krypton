@@ -15,10 +15,13 @@
 #define isdigit(CHR) (48 <= CHR && CHR <= 57)
 
 
-#define CMD_EXIT   "exit"
+#define CMD_EXIT    "exit"
 #define CMD_PRINT   "print"
 #define CMD_CLEAR   "clear"
 #define CMD_GET     "$"
+
+#define RESERVED_TRUE       "true"
+#define RESERVED_FALSE      "false"
 
 
 // TODO: replace strlen(CMD) with const number
@@ -151,6 +154,41 @@ int getIndexOnList(char **lst, int length, char *text){
     return -1;
 }
 
+char isReservedWord(char *word){
+    if(
+    strEqu(word, RESERVED_TRUE) ||
+    strEqu(word, RESERVED_FALSE)
+    )
+    {
+        return true;
+    }
+    return false;
+}
+
+// The function gets a spaced string and copy the string to the heap without spaces
+char *stripString(char *text){
+    // TODO: don't remove spaces on strings
+
+    char buffer[strlen(text)];
+    char *ptr;
+    int newLen = 0;
+    
+    for(ptr = text; *ptr != 0; ptr++){
+        if(!(*ptr == ' ' || *ptr == '\t')){
+            *(buffer + newLen) = *ptr;
+            newLen++;
+        }
+    }
+
+    // terminate last char with null byte
+    *(buffer + newLen) = 0;
+
+    char *newStr = (char*)malloc(newLen);
+    strncpy(newStr, buffer, newLen);
+
+    return newStr;
+}
+
 void init(){
     globals.maxVariables = MAX_VARIABLES;
     globals.currentVariables = 0;
@@ -158,7 +196,7 @@ void init(){
     globals.variableValues = (void*)malloc(MAX_VARIABLES * sizeof(void*));
 
     memset(globals.variableNames, 0, MAX_VARIABLES * sizeof(char**));
-    memset(globals.variableValues, 0, MAX_VARIABLES * sizeof(void*));
+    memset(globals.variableValues, 0, MAX_VARIABLES * sizeof(int*));
 }
 
 void parseCommand(char *buffer){
@@ -177,8 +215,13 @@ void parseCommand(char *buffer){
     else if (strEqu(buffer, CMD_GET))
     {
         int index = getIndexOnList(globals.variableNames, globals.maxVariables, buffer+1);
-        int value = *(globals.variableValues + index);
-        printf("%d\n", value);
+        if(index == -1){
+            printf("%s is not defined\n", buffer+1);
+        }
+        else{
+            int value = *(globals.variableValues + index);
+            printf("%d\n", value);
+        }
     }
     else{
         int i;
@@ -186,7 +229,7 @@ void parseCommand(char *buffer){
         // Check if '=' in line
         if(i != -1){
             char **vars = divideStringByIndex(buffer, i);
-
+            
             // If we've got a number
             if(isNumber(*(vars+1))){
                 int temp = atoi(*(vars+1));
@@ -204,25 +247,59 @@ void parseCommand(char *buffer){
 }
 
 
-int main(){
+int main(int argc, char *argv[]){
     #ifndef DEBUG
     init();
+    if(argc == 1){
 
-    // scan for input
-    char buffer[BUFFER_SIZE];
-    printf("(krypton) ");
-    scanf("%s", buffer);
-
-    // while not CMD_EXIT, parseCommand
-    while (strcmp(buffer, CMD_EXIT) != 0)
-    {
-        parseCommand(buffer);
+        // scan for input
+        char buffer[BUFFER_SIZE];
         printf("(krypton) ");
         scanf("%s", buffer);
+
+        // while not CMD_EXIT, parseCommand
+        while (strcmp(buffer, CMD_EXIT) != 0)
+        {
+            parseCommand(buffer);
+            printf("(krypton) ");
+            scanf("%s", buffer);
+        }
+    }
+    else if (argc == 2)
+    {
+        char buffer[BUFFER_SIZE];
+        FILE *file = fopen (argv[1], "r");
+        if (file != NULL)
+        {
+            char line [BUFFER_SIZE];
+            while (fgets(line, sizeof line, file) != NULL)
+            {
+                int len = strlen(line);
+                if (len > 0 && line[len-1] == '\n')
+                    line[len-1] = 0;
+                if(line[0] == 0)
+                    continue;
+
+                sscanf(line, "%s", buffer);
+
+                printf("%s", buffer);
+                parseCommand(buffer);
+            }
+            fclose (file);
+        }
+        else
+        {
+            perror(argv[1]);
+        }
     }
     
-    return 0;
+    #else
+    char buffer[100];
+    fgets(buffer, 100, stdin);
+
+    char *newStr = stripString(buffer);
+    printf(newStr);
     #endif
 
+    return 0;
 }
-
